@@ -15,7 +15,6 @@ class UiAuthorization extends StatefulWidget {
 }
 
 class _UiAuthorizationState extends State<UiAuthorization> {
-  
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -23,6 +22,7 @@ class _UiAuthorizationState extends State<UiAuthorization> {
 
   Widget sizedBox = const SizedBox(height: 16.0);
   bool isButtonVisible = false;
+  bool isSendingData = false;
 
   @override
   void initState() {
@@ -78,8 +78,6 @@ class _UiAuthorizationState extends State<UiAuthorization> {
             child: Padding(
               padding: const EdgeInsets.all(25),
               child: Column(children: [
-
-
                 //Name field
                 method("Name", _nameController, (value) {
                   if (value!.isEmpty) {
@@ -92,7 +90,6 @@ class _UiAuthorizationState extends State<UiAuthorization> {
                   };
                   return null;
                 }, 1),
-
 
                 //Email field
                 method("Email", _emailController, (value) {
@@ -109,7 +106,6 @@ class _UiAuthorizationState extends State<UiAuthorization> {
                 }, 1),
                 sizedBox,
 
-
                 //Message field
                 method("Message", _messageController, (value) {
                   if (value!.isEmpty) {
@@ -120,7 +116,6 @@ class _UiAuthorizationState extends State<UiAuthorization> {
                   });
                   return null;
                 }, 3),
-
 
                 Padding(
                   padding: const EdgeInsets.only(top: 80),
@@ -135,7 +130,6 @@ class _UiAuthorizationState extends State<UiAuthorization> {
                         minimumSize: MaterialStateProperty.all(
                           const Size(double.infinity, 70),
                         )),
-                        
                     onPressed: isButtonVisible
                         ? () async {
                             if (_formKey.currentState!.validate()) {
@@ -146,6 +140,9 @@ class _UiAuthorizationState extends State<UiAuthorization> {
                                 "message": _messageController.text,
                               };
                               String jsonData = jsonEncode(formData);
+                              setState(() {
+                                isSendingData = true;
+                              });
                               try {
                                 http.Response response = await http.post(
                                   Uri.parse(
@@ -160,20 +157,29 @@ class _UiAuthorizationState extends State<UiAuthorization> {
                                 }
                               } catch (e) {
                                 print('Error sending data -$e');
+                              } finally {
+                                setState(() {
+                                  isSendingData = false;
+                                });
                               }
 
                               print('Form is valid');
                             }
                           }
                         : null,
-                    child: const Row(
+                    child: Row(
                       children: [
                         Expanded(
                             child: Center(
-                                child: Text(
-                          'Send',
-                          style: TextStyle(fontSize: 22),
-                        ))),
+                                child: (isSendingData) == false
+                                    ? Text(
+                                        'Send',
+                                        style: TextStyle(fontSize: 22),
+                                      )
+                                    : Text(
+                                        'Please wait',
+                                        style: TextStyle(fontSize: 22),
+                                      ))),
                       ],
                     ),
                   ),
@@ -214,5 +220,3 @@ method(
     ],
   );
 }
-
-
