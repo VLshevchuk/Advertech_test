@@ -1,11 +1,7 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
-class Test {
-  late String name;
-  late String email;
-  late String message;
-  Test({required name, required email, required message});
-}
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(MaterialApp(
@@ -19,6 +15,7 @@ class UiAuthorization extends StatefulWidget {
 }
 
 class _UiAuthorizationState extends State<UiAuthorization> {
+  
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -26,6 +23,7 @@ class _UiAuthorizationState extends State<UiAuthorization> {
 
   Widget sizedBox = const SizedBox(height: 16.0);
   bool isButtonVisible = false;
+
   @override
   void initState() {
     super.initState();
@@ -80,98 +78,50 @@ class _UiAuthorizationState extends State<UiAuthorization> {
             child: Padding(
               padding: const EdgeInsets.all(25),
               child: Column(children: [
-                Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 25,
-                      backgroundColor: Color.fromARGB(255, 243, 227, 209),
-                      child: Icon(Icons.lock_open_sharp,
-                          color: Color.fromARGB(255, 199, 163, 122)),
-                    ),
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(left: 20.0, right: 20.0),
-                        child: TextFormField(
-                          controller: _nameController,
-                          decoration: const InputDecoration(labelText: "Name"),
-                          validator: (value) {
-                            if (value!.isEmpty) {
-                              return "Please enter your name";
-                            }
-                            setState(() {
-                              isButtonVisible = true;
-                            });
-                            return null;
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+
+
+                //Name field
+                method("Name", _nameController, (value) {
+                  if (value!.isEmpty) {
+                    return "Please enter your name";
+                  }
+                  () {
+                    setState(() {
+                      isButtonVisible = true;
+                    });
+                  };
+                  return null;
+                }, 1),
+
+
+                //Email field
+                method("Email", _emailController, (value) {
+                  if (value!.isEmpty) {
+                    return 'Please enter your email';
+                  } else if (!RegExp(r'^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$')
+                      .hasMatch(value)) {
+                    return 'Please enter a valid email address';
+                  }
+                  setState(() {
+                    isButtonVisible = true;
+                  });
+                  return null;
+                }, 1),
                 sizedBox,
-                Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 25,
-                      backgroundColor: Color.fromARGB(255, 243, 227, 209),
-                      child: Icon(Icons.lock_open_sharp,
-                          color: Color.fromARGB(255, 199, 163, 122)),
-                    ),
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(left: 20.0, right: 20.0),
-                        child: TextFormField(
-                          controller: _emailController,
-                          decoration: const InputDecoration(labelText: 'Email'),
-                          validator: (value) {
-                            if (value!.isEmpty) {
-                              return 'Please enter your email';
-                            } else if (!RegExp(
-                                    r'^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$')
-                                .hasMatch(value)) {
-                              return 'Please enter a valid email address';
-                            }
-                            setState(() {
-                              isButtonVisible = true;
-                            });
-                            return null;
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 25,
-                      backgroundColor: Color.fromARGB(255, 243, 227, 209),
-                      child: Icon(Icons.lock_open_sharp,
-                          color: Color.fromARGB(255, 199, 163, 122)),
-                    ),
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(left: 20.0, right: 20.0),
-                        child: TextFormField(
-                          controller: _messageController,
-                          maxLines: 3,
-                          decoration:
-                              const InputDecoration(labelText: 'Message'),
-                          validator: (value) {
-                            if (value!.isEmpty) {
-                              return 'Please enter your message';
-                            }
-                            setState(() {
-                              isButtonVisible = true;
-                            });
-                            return null;
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                // isButtonVisible == true
+
+
+                //Message field
+                method("Message", _messageController, (value) {
+                  if (value!.isEmpty) {
+                    return 'Please enter your message';
+                  }
+                  setState(() {
+                    isButtonVisible = true;
+                  });
+                  return null;
+                }, 3),
+
+
                 Padding(
                   padding: const EdgeInsets.only(top: 80),
                   child: ElevatedButton(
@@ -185,11 +135,33 @@ class _UiAuthorizationState extends State<UiAuthorization> {
                         minimumSize: MaterialStateProperty.all(
                           const Size(double.infinity, 70),
                         )),
+                        
                     onPressed: isButtonVisible
-                        ? () {
+                        ? () async {
                             if (_formKey.currentState!.validate()) {
                               _formKey.currentState!.save();
-                              // Валидация прошла успешно, выполните необходимые действия
+                              Map<String, dynamic> formData = {
+                                "name": _nameController.text,
+                                "email": _emailController.text,
+                                "message": _messageController.text,
+                              };
+                              String jsonData = jsonEncode(formData);
+                              try {
+                                http.Response response = await http.post(
+                                  Uri.parse(
+                                      "https://api.byteplex.info/api/test/contact/"),
+                                  headers: {"Content-Type": "application/json"},
+                                  body: jsonData,
+                                );
+                                if (response.statusCode == 201) {
+                                  print('Data sent');
+                                } else {
+                                  print("Status ${response.statusCode}");
+                                }
+                              } catch (e) {
+                                print('Error sending data -$e');
+                              }
+
                               print('Form is valid');
                             }
                           }
@@ -214,3 +186,33 @@ class _UiAuthorizationState extends State<UiAuthorization> {
     );
   }
 }
+
+method(
+  String labelText,
+  TextEditingController controller,
+  String? Function(String?)? validator,
+  int line,
+) {
+  return Row(
+    children: [
+      const CircleAvatar(
+        radius: 25,
+        backgroundColor: Color.fromARGB(255, 243, 227, 209),
+        child: Icon(Icons.lock_open_sharp,
+            color: Color.fromARGB(255, 199, 163, 122)),
+      ),
+      Expanded(
+        child: Container(
+          margin: const EdgeInsets.only(left: 20.0, right: 20.0),
+          child: TextFormField(
+              maxLines: line,
+              controller: controller,
+              decoration: InputDecoration(labelText: labelText),
+              validator: validator),
+        ),
+      ),
+    ],
+  );
+}
+
+
